@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "voiceofai": {
+      "command": "python",
+      "args": ["run_stdio.py"],
+      "env": {
+        "VOICEOFAI_API_KEY": "your-api-key-here",
+        "VOICEOFAI_BASE_URL": "https://voice.voiceofai.co.in/api/v1"
+      }
+    }
+  }
+}

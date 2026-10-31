@@ -1,49 +1,106 @@
 ---
 name: manage-agents
-description: "List, inspect, patch, update, or delete existing VoiceOfAI voice agents. Use when inspecting configured agents, modifying prompts or voices, backing up settings, or deleting agents."
+description: "List, inspect, update, or delete existing VoiceOfAI voice agents using MCP tools. Use when inspecting configured agents, modifying prompts, changing voice settings, or deleting agents."
 license: MIT
-compatibility: Requires internet access and VOICEOFAI_API_KEY.
+compatibility: Requires VoiceOfAI MCP server connection (FastMCP / voiceofai).
 metadata:
-  openclaw:
-    requires:
-      env:
-        - VOICEOFAI_API_KEY
-    primaryEnv: VOICEOFAI_API_KEY
+  mcp:
+    server: voiceofai
+    tools:
+      - list_agents
+      - get_agent
+      - update_agent
+      - delete_agent
 ---
 
 # Manage VoiceOfAI Agents
 
-## Endpoints
+## Overview
 
-- **List Agents:** `GET https://voice.voiceofai.co.in/api/v1/agents?type={type}`
-- **Get Agent:** `GET https://voice.voiceofai.co.in/api/v1/agents/{agent_id}`
-- **Update Agent:** `PATCH https://voice.voiceofai.co.in/api/v1/agents/{agent_id}`
-- **Delete Agent:** `DELETE https://voice.voiceofai.co.in/api/v1/agents/{agent_id}`
+Manage existing voice agents in your VoiceOfAI account using the `voiceofai` MCP tools.
 
-## Workflows
+## Available MCP Tools
 
-### 1. List Agents
-```bash
-python3 manage-agents/scripts/list_agents.py
+### 1. `list_agents`
+List all voice agents belonging to your account.
+
+**Arguments:**
+- `agent_type` (string, optional): Filter by agent type: `"incoming"` or `"flow"`. Omit to return all agents.
+
+**Example Tool Invocation:**
+```json
+{
+  "name": "list_agents",
+  "arguments": {
+    "agent_type": "incoming"
+  }
+}
 ```
 
-### 2. Inspect Single Agent
-```bash
-curl -H "Authorization: Bearer $VOICEOFAI_API_KEY" \
-  https://voice.voiceofai.co.in/api/v1/agents/AGENT_ID
+---
+
+### 2. `get_agent`
+Fetch complete configuration details for a specific agent (prompts, voices, LLM, transfer settings, and flow metadata).
+
+**Arguments:**
+- `agent_id` (string, required): UUID of the agent.
+
+**Example Tool Invocation:**
+```json
+{
+  "name": "get_agent",
+  "arguments": {
+    "agent_id": "ag_123e4567-e89b-12d3-a456-426655440000"
+  }
+}
 ```
 
-### 3. Update Agent Settings
-```bash
-curl -X PATCH -H "Authorization: Bearer $VOICEOFAI_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d '{"systemPrompt": "Updated prompt text...", "temperature": 0.5}' \
-  https://voice.voiceofai.co.in/api/v1/agents/AGENT_ID
+---
+
+### 3. `update_agent`
+Update an existing agent's configuration. Pass only the specific fields you wish to change. Every change is versioned.
+
+> ⚠️ **Note:** An agent's `type` (`incoming` or `flow`) cannot be modified after creation.
+
+**Arguments:**
+- `agent_id` (string, required): UUID of the agent.
+- `updates` (object, required): Key-value dictionary of updated fields (e.g. `systemPrompt`, `firstMessage`, `temperature`, `voiceSpeed`, `transferPhoneNumber`, etc.).
+
+**Example Tool Invocation:**
+```json
+{
+  "name": "update_agent",
+  "arguments": {
+    "agent_id": "ag_123e4567-e89b-12d3-a456-426655440000",
+    "updates": {
+      "systemPrompt": "You are an updated customer support agent. Be concise, polite, and direct.",
+      "temperature": 0.5,
+      "maxDurationSeconds": 900
+    }
+  }
+}
 ```
 
-### 4. Delete Agent
-> ⚠️ **Warning:** Deleting an agent is permanent and pauses any campaigns using it.
-```bash
-curl -X DELETE -H "Authorization: Bearer $VOICEOFAI_API_KEY" \
-  https://voice.voiceofai.co.in/api/v1/agents/AGENT_ID
+---
+
+### 4. `delete_agent`
+Permanently delete an agent.
+
+> ⚠️ **Warning:** Deletion cannot be undone. Any active outbound campaigns using this agent will be automatically paused.
+
+**Arguments:**
+- `agent_id` (string, required): UUID of the agent to delete.
+
+**Example Tool Invocation:**
+```json
+{
+  "name": "delete_agent",
+  "arguments": {
+    "agent_id": "ag_123e4567-e89b-12d3-a456-426655440000"
+  }
+}
 ```
+
+## Related Skills
+- **`create-agent`**: Provision a new voice agent.
+- **`agent-flows`**: Export and import visual flow graphs for `flow`-type agents.

@@ -1,30 +1,38 @@
 ---
 name: manage-credits
-description: "Check available calling credit balance and view daily credit usage history. Use when monitoring call minute quotas, checking billing status, or auditing daily usage."
+description: "Check available calling credit balance and view daily credit usage history using MCP tools. Use when monitoring call minute quotas, checking billing status, or auditing daily usage."
 license: MIT
-compatibility: Requires internet access and VOICEOFAI_API_KEY.
+compatibility: Requires VoiceOfAI MCP server connection (FastMCP / voiceofai).
 metadata:
-  openclaw:
-    requires:
-      env:
-        - VOICEOFAI_API_KEY
-    primaryEnv: VOICEOFAI_API_KEY
+  mcp:
+    server: voiceofai
+    tools:
+      - get_credit_balance
+      - get_credit_usage
 ---
 
 # Manage VoiceOfAI Account Credits
 
 ## Overview
 
-VoiceOfAI uses a credit-based billing system where **1 credit equals 1 minute of call time**.
+VoiceOfAI uses a credit-based billing system where **1 credit equals 1 minute of call time**. Use the `voiceofai` MCP tools to query your balance and monitor consumption trends over time.
 
-## Endpoints
+## Available MCP Tools
 
-- **Get Credit Balance:** `GET https://voice.voiceofai.co.in/api/v1/credits/balance`
-- **Get Credit Usage History:** `GET https://voice.voiceofai.co.in/api/v1/credits/usage?days={days}`
+### 1. `get_credit_balance`
+Query the current credit balance (available, reserved, and total minutes) for the authenticated account.
 
-## Response Examples
+**Arguments:** None
 
-### Balance Response
+**Example Tool Invocation:**
+```json
+{
+  "name": "get_credit_balance",
+  "arguments": {}
+}
+```
+
+**Returned Data Structure:**
 ```json
 {
   "available": 450.5,
@@ -32,19 +40,44 @@ VoiceOfAI uses a credit-based billing system where **1 credit equals 1 minute of
   "total": 465.5
 }
 ```
+- `available`: Credits immediately available for outbound and inbound calls.
+- `reserved`: Credits currently earmarked by in-flight calls or active campaigns.
+- `total`: Total balance (`available + reserved`).
 
-### Usage Response
+---
+
+### 2. `get_credit_usage`
+Retrieve day-by-day credit usage history and call counts for a specified historical window.
+
+**Arguments:**
+- `days` (integer, optional, default `30`): Lookback period in days (1 to 90).
+
+**Example Tool Invocation:**
 ```json
 {
-  "history": [
-    {"date": "2026-08-24", "creditsUsed": 32.5, "callCount": 14},
-    {"date": "2026-08-23", "creditsUsed": 45.0, "callCount": 20}
-  ]
+  "name": "get_credit_usage",
+  "arguments": {
+    "days": 14
+  }
 }
 ```
 
-## Helper Script
-
-```bash
-python3 manage-credits/scripts/check_balance.py --days 30
+**Returned Data Structure:**
+```json
+{
+  "history": [
+    {
+      "date": "2026-10-30",
+      "creditsUsed": 42.5,
+      "callCount": 18
+    },
+    {
+      "date": "2026-10-29",
+      "creditsUsed": 65.0,
+      "callCount": 27
+    }
+  ],
+  "totalCreditsUsed": 107.5,
+  "totalCalls": 45
+}
 ```

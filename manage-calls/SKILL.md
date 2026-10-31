@@ -1,45 +1,101 @@
 ---
 name: manage-calls
-description: "List call history, get call details (transcripts, AI summaries, sentiment, recording URLs), or hangup an in-progress call. Use when inspecting call logs, analyzing call output, or terminating active calls."
+description: "List call history, inspect call transcripts, review AI summaries and recordings, or terminate active calls using MCP tools. Use when checking call logs, analyzing call output, or terminating in-progress calls."
 license: MIT
-compatibility: Requires internet access and VOICEOFAI_API_KEY.
+compatibility: Requires VoiceOfAI MCP server connection (FastMCP / voiceofai).
 metadata:
-  openclaw:
-    requires:
-      env:
-        - VOICEOFAI_API_KEY
-    primaryEnv: VOICEOFAI_API_KEY
+  mcp:
+    server: voiceofai
+    tools:
+      - list_calls
+      - get_call
+      - hangup_call
 ---
 
 # Manage & Inspect VoiceOfAI Calls
 
-## Endpoints
+## Overview
 
-- **List Calls:** `GET https://voice.voiceofai.co.in/api/v1/calls?page={page}&pageSize={pageSize}`
-- **Get Call Details:** `GET https://voice.voiceofai.co.in/api/v1/calls/{call_id}`
-- **Hangup Active Call:** `POST https://voice.voiceofai.co.in/api/v1/calls/{call_id}/hangup`
+Monitor, inspect, and manage voice calls across your account using the `voiceofai` MCP tools.
 
-## Call Status Lifecycle
+## Call Lifecycle Statuses
+1. `queued`: Call request accepted; waiting for telephony dispatch.
+2. `ringing`: Destination carrier and handset are currently ringing.
+3. `in-progress`: Call answered; conversation active between caller and AI agent.
+4. `completed`: Call completed normally.
+5. `failed` / `busy` / `no-answer`: Call did not connect or encountered an error.
 
-1. `queued` — Waiting to be picked up by engine.
-2. `ringing` — Target phone device is ringing.
-3. `in-progress` — Call connected and conversation taking place.
-4. `completed` / `failed` — Final state.
+## Available MCP Tools
 
-## Helper Script
+### 1. `list_calls`
+List past and active calls across all telephony engines, paginated.
 
-```bash
-python3 manage-calls/scripts/list_calls.py --page 1 --page-size 20
+**Arguments:**
+- `page` (integer, optional, default `1`): Page number.
+- `page_size` (integer, optional, default `20`): Records per page.
+
+**Example Tool Invocation:**
+```json
+{
+  "name": "list_calls",
+  "arguments": {
+    "page": 1,
+    "page_size": 10
+  }
+}
 ```
 
-## Get Transcript & Recording
+---
 
-```bash
-curl -H "Authorization: Bearer $VOICEOFAI_API_KEY" \
-  https://voice.voiceofai.co.in/api/v1/calls/CALL_ID
+### 2. `get_call`
+Fetch comprehensive details for a single call session, including conversational transcript, automated AI summary, sentiment analysis, duration, and audio recording URL.
+
+**Arguments:**
+- `call_id` (string, required): UUID of the call.
+
+**Example Tool Invocation:**
+```json
+{
+  "name": "get_call",
+  "arguments": {
+    "call_id": "call_987e6543-e21b-12d3-a456-426655440000"
+  }
+}
 ```
-Returns:
-- `transcript`: Array of spoken turn objects `{speaker, message, timestamp}`
-- `aiSummary`: Automated call summary
-- `sentiment`: `"positive"`, `"neutral"`, `"negative"`
-- `recordingUrl`: URL to MP3/WAV audio recording file
+
+**Returned Data Structure:**
+```json
+{
+  "id": "call_987e6543-e21b-12d3-a456-426655440000",
+  "status": "completed",
+  "durationSeconds": 142,
+  "sentiment": "positive",
+  "aiSummary": "Customer confirmed attendance for their appointment tomorrow at 3:00 PM.",
+  "recordingUrl": "https://storage.voiceofai.co.in/recordings/call_987e6543.mp3",
+  "transcript": [
+    {"speaker": "agent", "message": "Hi Emily, this is Alex from SunPower. Am I speaking with the homeowner?", "timestamp": "00:02"},
+    {"speaker": "user", "message": "Yes, this is Emily. How can I help you?", "timestamp": "00:06"},
+    {"speaker": "agent", "message": "I'm calling to confirm your solar consultation scheduled for tomorrow at 3 PM.", "timestamp": "00:10"}
+  ]
+}
+```
+
+---
+
+### 3. `hangup_call`
+Immediately terminate an active call.
+
+> ℹ️ Only functions while the call status is `ringing` or `in-progress`.
+
+**Arguments:**
+- `call_id` (string, required): UUID of the active call to terminate.
+
+**Example Tool Invocation:**
+```json
+{
+  "name": "hangup_call",
+  "arguments": {
+    "call_id": "call_987e6543-e21b-12d3-a456-426655440000"
+  }
+}
+```

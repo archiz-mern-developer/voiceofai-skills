@@ -1,62 +1,110 @@
 ---
 name: agent-flows
-description: "Export visual flow graphs (JSON nodes, edges, variables) from 'flow'-type agents, or replace an existing flow configuration. Use when backing up visual graph agents or restoring flow templates."
+description: "Export visual flow graphs (JSON nodes, edges, variables) from 'flow'-type agents, or replace an existing flow configuration using MCP tools. Use when backing up visual graph agents, editing nodes/edges, or restoring flow templates."
 license: MIT
-compatibility: Requires internet access and VOICEOFAI_API_KEY.
+compatibility: Requires VoiceOfAI MCP server connection (FastMCP / voiceofai).
 metadata:
-  openclaw:
-    requires:
-      env:
-        - VOICEOFAI_API_KEY
-    primaryEnv: VOICEOFAI_API_KEY
+  mcp:
+    server: voiceofai
+    tools:
+      - export_agent_flow
+      - import_agent_flow
 ---
 
 # Export & Import Visual Agent Flows
 
-## Endpoints
+## Overview
 
-- **Export Flow Graph:** `GET https://voice.voiceofai.co.in/api/v1/agents/{agent_id}/flow`
-- **Import Flow Graph:** `PUT https://voice.voiceofai.co.in/api/v1/agents/{agent_id}/flow`
+Use the `voiceofai` MCP tools to export and import multi-turn conversational flow graphs for `flow`-type voice agents. Flows are represented as structured graphs containing nodes (speech prompts, inputs, conditional logic), directed edges, and variables.
 
 ## Flow Graph Object Structure
 
 ```json
 {
-  "flow": {
-    "name": "Payment Flow",
-    "nodes": [
-      {
-        "id": "node_1",
-        "type": "speak",
-        "data": { "text": "Please confirm your invoice number." }
-      },
-      {
-        "id": "node_2",
-        "type": "input",
-        "data": { "variable": "invoice_num" }
+  "name": "Payment Assistance Flow",
+  "nodes": [
+    {
+      "id": "node_start",
+      "type": "speak",
+      "data": {
+        "text": "Hello! I can help you process your invoice payment today. What is your invoice number?"
       }
-    ],
-    "edges": [
-      { "id": "edge_1", "source": "node_1", "target": "node_2" }
-    ],
-    "variables": {
-      "invoice_num": null
+    },
+    {
+      "id": "node_collect_invoice",
+      "type": "input",
+      "data": {
+        "variable": "invoice_id"
+      }
     }
+  ],
+  "edges": [
+    {
+      "id": "edge_1",
+      "source": "node_start",
+      "target": "node_collect_invoice"
+    }
+  ],
+  "variables": {
+    "invoice_id": null
   }
 }
 ```
 
-## Helper Script
+## Available MCP Tools
 
-Export flow to file:
-```bash
-python3 agent-flows/scripts/export_flow.py --agent-id "AGENT_UUID" --output "flow_backup.json"
+### 1. `export_agent_flow`
+Export the visual conversation flow graph (nodes, edges, and state variables) for a specified `flow`-type agent.
+
+> ℹ️ The target agent must have `type: "flow"`.
+
+**Arguments:**
+- `agent_id` (string, required): UUID of the flow agent.
+
+**Example Tool Invocation:**
+```json
+{
+  "name": "export_agent_flow",
+  "arguments": {
+    "agent_id": "ag_123e4567-e89b-12d3-a456-426655440000"
+  }
+}
 ```
 
-Import flow from file:
-```bash
-curl -X PUT -H "Authorization: Bearer $VOICEOFAI_API_KEY" \
-  -H "Content-Type: application/json" \
-  -d @flow_backup.json \
-  https://voice.voiceofai.co.in/api/v1/agents/AGENT_UUID/flow
+**Returned Data Structure:**
+Returns the complete flow object containing `name`, `nodes`, `edges`, and `variables`.
+
+---
+
+### 2. `import_agent_flow`
+Replace an agent's visual conversation flow entirely with an updated flow graph.
+
+> ⚠️ **Warning:** This operation completely overwrites the existing flow graph. It is recommended to call `export_agent_flow` first to preserve a backup.
+
+**Arguments:**
+- `agent_id` (string, required): UUID of the flow agent.
+- `flow` (object, required): Flow definition containing `name` (string), `nodes` (array), `edges` (array), and `variables` (object).
+
+**Example Tool Invocation:**
+```json
+{
+  "name": "import_agent_flow",
+  "arguments": {
+    "agent_id": "ag_123e4567-e89b-12d3-a456-426655440000",
+    "flow": {
+      "name": "Updated Flow",
+      "nodes": [
+        {
+          "id": "node_greeting",
+          "type": "speak",
+          "data": {
+            "text": "Thank you for calling customer service. How can I direct your call?"
+          }
+        }
+      ],
+      "edges": [],
+      "variables": {}
+    }
+  }
+}
 ```
